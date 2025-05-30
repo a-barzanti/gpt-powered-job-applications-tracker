@@ -1,0 +1,32 @@
+# Python cache & compiled files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment (uv or venv)
+.venv/
+env/
+venv/
+
+# macOS/Linux/Windows junk
+.DS_Store
+Thumbs.db
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+
+# Python dependency lock files (optional, if you regenerate them)
+uv.lock
+poetry.lock
+
+# Streamlit secrets (if you deploy this later)
+.streamlit/secrets.toml
+
+# Google API credentials – DO NOT COMMIT THIS
+creds.json
+
+# Flet runtime cache (if any appear)
+.flet/
