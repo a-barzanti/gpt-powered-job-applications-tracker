@@ -93,39 +93,54 @@ async def get_sheet_data_reversed(sheet):
 # === MAIN APP ===
 
 async def main(page: ft.Page):
-    page.title = "GPT-Powered Job Tracker"
-    page.window_min_height = 600
-    page.window_min_width = 800
+    page.title = "GPT-Powered Job Application Tracker"
+    page.window.min_height = 600
+    page.window.min_width = 800
+    page.padding = 0
 
-    sheet = await get_sheet()
+    sheet = None
 
     url_input = ft.TextField(label="Job URL", width=500)
-    status_display = ft.Text()
+    status_display = ft.Text(size=12, color=ft.Colors.GREEN)
     loader = ft.ProgressRing(visible=False)
 
     gpt_output_text = ft.Text(value="", size=12, selectable=True)
     gpt_response_container = ft.Container(
         content=ft.Column(
             controls=[gpt_output_text],
-            scroll=ft.ScrollMode.AUTO,
             expand=True,
         ),
-        height=150,
-        border=ft.border.all(1, ft.Colors.GREY_300),
-        border_radius=8,
-        padding=10,
+        expand=True,
+        padding=10
     )
 
+    async def on_refresh(e):
+        nonlocal sheet
+
+        loader.visible = True
+        status_display.value = "Refreshing table…"
+        page.update()
+        if sheet is None:
+            sheet = await get_sheet()
+        table_wrapper.controls[0] = await create_table()
+        status_display.value = "✅ Table refreshed"
+        loader.visible = False
+        page.update()
+
     async def create_table():
+        nonlocal sheet
+
         loader.visible = True
         page.update()
+        if sheet is None:
+            sheet = await get_sheet()
         data = await get_sheet_data_reversed(sheet)
         loader.visible = False
 
         if not data:
             return ft.Text("No data found.")
 
-        headers = [ft.DataColumn(ft.Text(col, size=12, weight="bold")) for col in data[0]]
+        headers = [ft.DataColumn(ft.Text(col, size=12, weight=ft.FontWeight.BOLD)) for col in data[0]]
         rows = []
 
         try:
@@ -160,43 +175,42 @@ async def main(page: ft.Page):
                 cells.append(ft.DataCell(cell_widget))
             rows.append(ft.DataRow(cells=cells))
 
-        return ft.Row(
-            controls=[
-                ft.Container(
-                    content=ft.DataTable(
-                        columns=headers,
-                        rows=rows,
-                        heading_row_color=ft.Colors.GREY_200,
-                        show_checkbox_column=False,
-                        data_row_color={
-                            "even": ft.Colors.WHITE,
-                            "odd": ft.Colors.GREY_100,
-                        },
-                        vertical_lines=ft.BorderSide(1, ft.Colors.GREY_300),
-                        horizontal_lines=ft.BorderSide(1, ft.Colors.GREY_300),
-                        column_spacing=10,
-                        divider_thickness=1,
-                        heading_row_height=40,
-                        heading_text_style=ft.TextStyle(weight="bold"),
-                    ),
-                    expand=True,
-                    width=float("inf"),
-                    border=ft.border.only(bottom=ft.BorderSide(1, ft.Colors.GREY_300)),
-                )
-            ],
+        return ft.Container(
+            content=ft.DataTable(
+                columns=headers,
+                rows=rows,
+                heading_row_color=ft.Colors.GREY_200,
+                show_checkbox_column=False,
+                vertical_lines=ft.BorderSide(1, ft.Colors.GREY_300),
+                horizontal_lines=ft.BorderSide(1, ft.Colors.GREY_300),
+                column_spacing=10,
+                divider_thickness=1,
+                heading_row_height=40,
+                heading_text_style=ft.TextStyle(weight=ft.FontWeight.BOLD),
+            ),
             expand=True,
+            width=float("inf"),
+            border=ft.border.only(bottom=ft.BorderSide(1, ft.Colors.GREY_300)),
         )
 
+    table_wrapper = ft.Column(
+        controls=[ft.Text("")],
+        expand=True,
+        scroll=ft.ScrollMode.AUTO
+    )
+
+
     async def on_submit(e):
-        url = url_input.value.strip()
+        nonlocal sheet
+        
+        url = (url_input.value or "").strip()
         if not is_valid_url(url):
             status_display.value = "Invalid URL. Try something real."
             page.update()
             return
 
         loader.visible = True
-        gpt_output_text.value = "Launching browser, scraping site, bribing GPT..."
-        status_display.value = ""
+        status_display.value = "Launching browser, scraping site, bribing GPT..."
         page.update()
 
         raw_text = await fetch_rendered_text(url)
@@ -206,46 +220,68 @@ async def main(page: ft.Page):
         page.update()
 
         company, title = "Not found", "Not found"
-        for line in gpt_result.splitlines():
+        for line in (gpt_result or "").splitlines():
             if "Company Name" in line:
                 company = line.split(":", 1)[-1].strip()
             if "Job Title" in line:
                 title = line.split(":", 1)[-1].strip()
 
         date_applied = datetime.now().strftime("%d/%m/%Y")
-        await asyncio.to_thread(sheet.append_row, [company, title, "Applied", date_applied, url])
+        if sheet is not None:
+            await asyncio.to_thread(sheet.append_row, [company, title, "Applied", date_applied, url])
 
         url_input.value = ""
-        status_display.value = f"Added {company} - {title}"
+        status_display.value = f"✅ Added {company} – {title}"
         table_wrapper.controls[0] = await create_table()
         loader.visible = False
         page.update()
 
-    table_wrapper = ft.Column(
-        controls=[await create_table()],
+    tabs = ft.Tabs(
+        selected_index=0,
+        animation_duration=300,
+        tabs=[
+            ft.Tab(
+                text="Applications",
+                content=table_wrapper,
+            ),
+            ft.Tab(
+                text="GPT Output",
+                content=gpt_response_container
+            ),
+        ],
         expand=True,
-        scroll=ft.ScrollMode.AUTO
+        visible=False,  # Initially hidden, will be shown after first load
     )
 
-    table_box = ft.Container(
-        content=table_wrapper,
-        border=ft.border.all(1, ft.Colors.GREY_300),
-        border_radius=10,
-        expand=True,
-    )
+    async def lazy_load_table():
+        table = await create_table()
+        table_wrapper.controls[0] = table
+        tabs.visible = True
+        page.update()  # Sync, not async
+
+    asyncio.create_task(lazy_load_table())
 
     page.add(
         ft.Column(
             [
-                ft.Text("Auto-Fill Job Application from URL", size=20, weight="bold"),
-                ft.Row([url_input, ft.ElevatedButton("Parse & Add", on_click=on_submit)]),
-                status_display,
-                loader,
-                ft.Text("GPT Output", weight="bold", size=14),
-                gpt_response_container,
-                ft.Divider(),
-                ft.Text("Your Applications", size=18, weight="bold"),
-                table_box,
+                ft.Container(
+                    content= ft.Column(
+                        [
+                            ft.Text("Auto-Fill Job Application from URL", size=20, weight=ft.FontWeight.BOLD),
+                            ft.Row([
+                                url_input,
+                                ft.ElevatedButton("Parse & Add", on_click=on_submit),
+                                ft.IconButton(icon=ft.Icons.REFRESH, tooltip="Refresh Table", on_click=on_refresh)
+                            ]),
+                            status_display,
+                            loader,
+                        ],
+                        expand=True,
+                    ), 
+                    padding=10,
+                ),
+ 
+                tabs,
             ],
             expand=True,
         )
