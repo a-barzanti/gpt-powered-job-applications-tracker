@@ -34,7 +34,7 @@ No browser tabs. No Excel formulas. Just simple job tracking with real GUI vibes
 ### 1. 📁 Clone this repo
 
 ```bash
-git clone https://github.com/yourusername/gpt-powered-job-applications-tracker.git
+git clone https://github.com/a-barzanti/gpt-powered-job-applications-tracker.git
 cd gpt-powered-job-applications-tracker
 ```
 
