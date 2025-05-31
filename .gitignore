@@ -28,5 +28,8 @@ poetry.lock
 # Google API credentials – DO NOT COMMIT THIS
 creds.json
 
+# OpenAI credentials – DO NOT COMMIT THIS
+openai_key.txt
+
 # Flet runtime cache (if any appear)
 .flet/
