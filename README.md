@@ -122,7 +122,7 @@ It must be shared with your service account. Otherwise, your app will silently c
 ### 7. 🧪 Run the app
 
 ```bash
-python app.py
+python main.py
 ```
 
 A glorious little window will open, scraping job listings and extracting info while you sip your cold brew and question your life choices.

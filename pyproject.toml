@@ -3,7 +3,7 @@ name = "gpt-powered-application-tracker"
 version = "0.1.0"
 description = "GPT-Powered Application Tracker is a Python application that uses OpenAI's GPT model to track job applications, providing a user-friendly interface and integration with Google Sheets for data storage."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.9"
 dependencies = [
     "bs4>=0.0.2",
     "flet[all]==0.28.3",
