@@ -12,3 +12,8 @@ dependencies = [
     "openai>=1.82.1",
     "playwright>=1.52.0",
 ]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+pythonpath = ["."]
