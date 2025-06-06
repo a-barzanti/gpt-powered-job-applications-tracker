@@ -1,5 +1,5 @@
 [project]
-name = "gpt-powered-application-tracker"
+name = "gpt-powered-job-applications-tracker"
 version = "0.1.0"
 description = "GPT-Powered Application Tracker is a Python application that uses OpenAI's GPT model to track job applications, providing a user-friendly interface and integration with Google Sheets for data storage."
 readme = "README.md"
